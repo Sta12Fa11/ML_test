@@ -34,12 +34,10 @@ st.session_state.DATA = st.session_state.DATA
 
 # อัพโหลดไฟล์
 def upload_file(s):
-    if s.type == 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet':
-        s = pd.read_excel(s)
-    elif s.type == 'text/csv':
+    if s.type == 'text/csv':
         s = pd.read_csv(s)
     else:
-        st.write('ชนิดไฟล์ไม่ถูกต้อง')
+        s = pd.read_excel(s)
     return s
 
 
@@ -176,81 +174,82 @@ else:
         display4()
     except:
         ""
+    else:
+        st.write('---')
+        st.subheader('5. เลือกโมเดล')
+        models = st.multiselect('เลือกโมเดล', options=model_choices)
+        test_size = st.slider('กำหนดสัดส่วนชุดทดสอบของชุดข้อมูล',
+                              value=0.20, min_value=0.00, max_value=1.00,
+                              step=0.01)
+        random_state = st.slider('Random state', value=50,
+                                 min_value=1, max_value=100, step=1)
+        X_train, X_test, y_train,  y_test = train_test_split(X, y, test_size=test_size, random_state=random_state)
+        st.write(f'**จำนวนข้อมูลชุดทดสอบ {X_test.shape[0]} แถว จาก {data.shape[0]} แถว**')
+        X_axis = st.selectbox('**เลือกตัวแปรสำหรับแกน X เพื่อพลอตกราฟ**', options=X.columns)
+        st.write('')
 
-    st.write('---')
-    st.subheader('5. เลือกโมเดล')
-    models = st.multiselect('เลือกโมเดล', options=model_choices)
-    test_size = st.slider('กำหนดสัดส่วนชุดทดสอบของชุดข้อมูล',
-                          value=0.20, min_value=0.00, max_value=1.00,
-                          step=0.01)
-    random_state = st.slider('Random state', value=50,
-                             min_value=1, max_value=100, step=1)
-    X_train, X_test, y_train,  y_test = train_test_split(X, y, test_size=test_size, random_state=random_state)
-    st.write(f'**จำนวนข้อมูลชุดทดสอบ {X_test.shape[0]} แถว จาก {data.shape[0]} แถว**')
-    X_axis = st.selectbox('**เลือกตัวแปรสำหรับแกน X เพื่อพลอตกราฟ**', options=X.columns)
-    st.write('')
     #
 
-    ml = pd.DataFrame(X)
-    ml.sort_values(by=X_axis, inplace=True)
-    ml2 = ml.copy()
-    # Linear Regression
-    if 'LinearRegression' in models:
-        st.subheader('Linear Regression')
-        lm = LinearRegression()
-        lm.fit(X_train, y_train)
-        lm_result = lm.predict(X_test)
-        lm_predicted = lm.predict(ml)
-        lm_coef = lm.coef_
-        lm_var = lm.feature_names_in_
-        lm_intercept = lm.intercept_
-        lm_score = lm.score(X_test, y_test)
-        lm_rmse = np.sqrt(mean_squared_error(y_test, lm_result))
-        st.write(f'ค่า R² : {lm_score:,.4f}')
-        st.write(f'ค่า RMSE : {lm_rmse:,.2f}')
-        st.write('**ค่าสัมประสิทธิ์**')
-        for i in zip(lm_var, lm_coef):
-            str(i[0]) + " : " + str(i[1])
-        st.write('**ค่าคงที่**')
-        st.write(f'intercept : {lm_intercept}')
-        st.write('#')
-        ml['LinearRegression'] = lm_predicted
+        ml = pd.DataFrame(X)
+        ml.sort_values(by=X_axis, inplace=True)
+        ml2 = ml.copy()
+        # Linear Regression
+        if 'LinearRegression' in models:
+            st.subheader('Linear Regression')
+            lm = LinearRegression()
+            lm.fit(X_train, y_train)
+            lm_result = lm.predict(X_test)
+            lm_predicted = lm.predict(ml)
+            lm_coef = lm.coef_
+            lm_var = lm.feature_names_in_
+            lm_intercept = lm.intercept_
+            lm_score = lm.score(X_test, y_test)
+            lm_rmse = np.sqrt(mean_squared_error(y_test, lm_result))
+            st.write(f'ค่า R² : {lm_score:,.4f}')
+            st.write(f'ค่า RMSE : {lm_rmse:,.2f}')
+            st.write('**ค่าสัมประสิทธิ์**')
+            for i in zip(lm_var, lm_coef):
+                str(i[0]) + " : " + str(i[1])
+            st.write('**ค่าคงที่**')
+            st.write(f'intercept : {lm_intercept}')
+            st.write('#')
+            ml['LinearRegression'] = lm_predicted
 
-    if 'PolynomialRegression' in models:
-        st.subheader('Polynomial Regression')
-        degree = st.number_input('อันดับ(degree)', value=2, min_value=1, max_value=10, step=1)
-        poly = PolynomialFeatures(degree)
-        X_train_poly = poly.fit_transform(X_train)
-        X_test_poly = poly.fit_transform(X_test)
-        X_features = poly.fit_transform(ml2)
-        pm = LinearRegression()
-        pm.fit(X_train_poly, y_train)
-        y_result = pm.predict(X_test_poly)
-        pm_predicted = pm.predict(X_features)
-        pm_score = pm.score(X_test_poly, y_test)
-        pm_rmse = np.sqrt(mean_squared_error(y_test, y_result))
-        st.write(f'ค่า R² : {pm_score:,.4f}')
-        st.write(f'ค่า RMSE : {pm_rmse:,.2f}')
-        ml['PolynomialRegression'] = pm_predicted
-        st.write('#')
+        if 'PolynomialRegression' in models:
+            st.subheader('Polynomial Regression')
+            degree = st.number_input('อันดับ(degree)', value=2, min_value=1, max_value=10, step=1)
+            poly = PolynomialFeatures(degree)
+            X_train_poly = poly.fit_transform(X_train)
+            X_test_poly = poly.fit_transform(X_test)
+            X_features = poly.fit_transform(ml2)
+            pm = LinearRegression()
+            pm.fit(X_train_poly, y_train)
+            y_result = pm.predict(X_test_poly)
+            pm_predicted = pm.predict(X_features)
+            pm_score = pm.score(X_test_poly, y_test)
+            pm_rmse = np.sqrt(mean_squared_error(y_test, y_result))
+            st.write(f'ค่า R² : {pm_score:,.4f}')
+            st.write(f'ค่า RMSE : {pm_rmse:,.2f}')
+            ml['PolynomialRegression'] = pm_predicted
+            st.write('#')
 
-    fig = px.scatter(x=X[X_axis], y=y, title=f'แสดงกราฟระหว่าง {X_axis} และ {label_column}')
-    fig.update_xaxes(title=X_axis)
-    fig.update_yaxes(title=label_column)
+        fig = px.scatter(x=X[X_axis], y=y, title=f'แสดงกราฟระหว่าง {X_axis} และ {label_column}')
+        fig.update_xaxes(title=X_axis)
+        fig.update_yaxes(title=label_column)
 
 
-    if 'LinearRegression' in models:
-        fig.add_trace(go.Line(x=ml[X_axis], y=ml['LinearRegression'], name='Linear Regression'))
+        if 'LinearRegression' in models:
+            fig.add_trace(go.Line(x=ml[X_axis], y=ml['LinearRegression'], name='Linear Regression'))
 
-    if 'PolynomialRegression' in models:
-        fig.add_trace(go.Scatter(x=ml[X_axis], y=ml['PolynomialRegression'], name='Polynomial Regression',mode="lines", marker_color="red"))
+        if 'PolynomialRegression' in models:
+            fig.add_trace(go.Scatter(x=ml[X_axis], y=ml['PolynomialRegression'], name='Polynomial Regression',mode="lines", marker_color="red"))
 
-    st.plotly_chart(fig, use_container_width=True)
-    st.write('---')
+        st.plotly_chart(fig, use_container_width=True)
+        st.write('---')
 
-    st.subheader('6. อัพโหลด Features')
-    source2 = st.file_uploader('อัพโหลด Features ที่ต้องการคาดการณ์', type=('xlsx', 'csv'),
-                               accept_multiple_files=False)
+        st.subheader('6. อัพโหลด Features')
+        source2 = st.file_uploader('อัพโหลด Features ที่ต้องการคาดการณ์', type=('xlsx', 'csv'),
+                                   accept_multiple_files=False)
     try:
         source2 = upload_file(source2).sort_values(by=X_axis)
         source2_origin = source2.copy()
