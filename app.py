@@ -38,7 +38,7 @@ def upload_file(s):
     if s.type == 'text/csv':
         s = pd.read_csv(s)
     else:
-        s = pd.read_excel(s)
+        s = pd.read_excel(s, engine="openpyxl")
     return s
 
 
@@ -210,7 +210,7 @@ else:
             st.write(f'ค่า RMSE : {lm_rmse:,.2f}')
             st.write('**ค่าสัมประสิทธิ์**')
             for i in zip(lm_var, lm_coef):
-                str(i[0]) + " : " + str(i[1])
+                st.write(str(i[0]) + " : " + str(i[1]))
             st.write('**ค่าคงที่**')
             st.write(f'intercept : {lm_intercept}')
             st.write('#')
