@@ -11,6 +11,7 @@ from sklearn.metrics import mean_squared_error, r2_score
 import streamlit as st
 import base64
 import io
+import openpyxl
 import plotly.express as px
 import plotly.graph_objects as go
 
@@ -135,7 +136,7 @@ st.write('')
 st.subheader('1. อัพโหลดไฟล์')
 try:
     source1 = st.file_uploader('อัพโหลดไฟล์ต้องการสร้างโมเดล',
-                               type=('xlsx', 'csv'), accept_multiple_files=False)
+                               type=['csv', 'xlsx'], accept_multiple_files=False)
     source1 = upload_file(s=source1)
 except:
     st.error('ยังไม่ได้อัพโหลดไฟล์')
