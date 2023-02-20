@@ -6,6 +6,7 @@ from lazypredict.Supervised import LazyRegressor
 from sklearn.preprocessing import PolynomialFeatures
 from sklearn.linear_model import LinearRegression
 from sklearn.tree import DecisionTreeRegressor
+from sklearn.ensemble import RandomForestRegressor
 from sklearn.model_selection import train_test_split
 from sklearn.metrics import mean_squared_error, r2_score
 import streamlit as st
@@ -194,6 +195,8 @@ else:
         ml = pd.DataFrame(X)
         ml.sort_values(by=X_axis, inplace=True)
         ml2 = ml.copy()
+        ml3 = ml.copy()
+        ml4 = ml.copy()
         # Linear Regression
         if 'LinearRegression' in models:
             st.subheader('Linear Regression')
@@ -225,14 +228,43 @@ else:
             X_features = poly.fit_transform(ml2)
             pm = LinearRegression()
             pm.fit(X_train_poly, y_train)
-            y_result = pm.predict(X_test_poly)
+            pm_result = pm.predict(X_test_poly)
             pm_predicted = pm.predict(X_features)
             pm_score = pm.score(X_test_poly, y_test)
-            pm_rmse = np.sqrt(mean_squared_error(y_test, y_result))
+            pm_rmse = np.sqrt(mean_squared_error(y_test, pm_result))
             st.write(f'ค่า R² : {pm_score:,.4f}')
             st.write(f'ค่า RMSE : {pm_rmse:,.2f}')
             ml['PolynomialRegression'] = pm_predicted
             st.write('#')
+
+        if 'DecisionTreeRegressor' in models:
+            st.subheader('Decision Tree Regressor')
+            dm_min_sample = st.slider('Min Samples Split', min_value=1, value=1, max_value=10, step=1, key='DM_SPLIT')
+            dm_max_depth = st.number_input('Max depth', min_value=0, value=3, max_value=10, key='DM_DEPTH')
+            dm = DecisionTreeRegressor(min_samples_split=dm_min_sample, max_depth=None if dm_max_depth == 0 else dm_max_depth, random_state=0)
+            dm.fit(X_train, y_train)
+            dm_result = dm.predict(X_test)
+            dm_predict = dm.predict(ml3)
+            dm_score = dm.score(X_test, y_test)
+            dm_rmse = np.sqrt(mean_squared_error(y_test, dm_result))
+            st.write(f'ค่า R² : {dm_score:,.4f}')
+            st.write(f'ค่า RMSE : {dm_rmse:,.2f}')
+            ml['DecisionTreeRegressor'] = dm_predict
+
+        if 'RandomForestRegressor' in models:
+            st.subheader('Random Forest Regressor')
+            rm_min_sample = st.slider('Min Samples Split', min_value=1, value=1, max_value=10, step=1, key='RM_SPLIT')
+            rm_max_depth = st.number_input('Max depth', min_value=0, value=3, max_value=10, key='RM_DEPTH')
+            rm = RandomForestRegressor(min_samples_split=rm_min_sample,
+                                       max_depth=None if rm_max_depth == 0 else rm_max_depth, random_state=0)
+            rm.fit(X_train, y_train)
+            rm_result = rm.predict(X_test)
+            rm_predict = rm.predict(ml4)
+            rm_score = rm.score(X_test, y_test)
+            rm_rmse = np.sqrt(mean_squared_error(y_test, rm_result))
+            st.write(f'ค่า R² : {rm_score:,.4f}')
+            st.write(f'ค่า RMSE : {rm_rmse:,.2f}')
+            ml['RandomForestRegressor'] = rm_predict
 
         fig = px.scatter(x=X[X_axis], y=y, title=f'แสดงกราฟระหว่าง {X_axis} และ {label_column}')
         fig.update_xaxes(title=X_axis)
@@ -243,7 +275,13 @@ else:
             fig.add_trace(go.Line(x=ml[X_axis], y=ml['LinearRegression'], name='Linear Regression'))
 
         if 'PolynomialRegression' in models:
-            fig.add_trace(go.Scatter(x=ml[X_axis], y=ml['PolynomialRegression'], name='Polynomial Regression',mode="lines", marker_color="red"))
+            fig.add_trace(go.Line(x=ml[X_axis], y=ml['PolynomialRegression'], name='Polynomial Regression'))
+
+        if 'DecisionTreeRegressor' in models:
+            fig.add_trace(go.Line(x=ml[X_axis], y=ml['DecisionTreeRegressor'], name='Decision Tree Regressor'))
+
+        if 'RandomForestRegressor' in models:
+            fig.add_trace(go.Line(x=ml[X_axis], y=ml['RandomForestRegressor'], name='Random Forest Regressor'))
 
         st.plotly_chart(fig, use_container_width=True)
         st.write('---')
@@ -277,6 +315,14 @@ else:
                 source2_2 = source2.copy()
                 pm_forecast = pm.predict(poly.fit_transform(source2_2))
                 pm_forecast = pd.DataFrame(pm_forecast)
+            if 'DecisionTreeRegressor' in models:
+                source2_3 = source2.copy()
+                dm_forecast = dm.predict(source2_3)
+                dm_forecast = pd.DataFrame(dm_forecast)
+            if 'RandomForestRegressor' in models:
+                source2_4 = source2.copy()
+                rm_forecast = rm.predict(source2_4)
+                rm_forecast = pd.DataFrame(rm_forecast)
         except:
             "error"
         try:
@@ -285,6 +331,15 @@ else:
             ""
         try:
             source2[label_column + '_polyReg_forecast'] = pm_forecast
+        except:
+            ""
+        try:
+            source2[label_column + '_decision_forecast'] = dm_forecast
+        except:
+            ""
+        try:
+            source2[label_column + '_ranforest_forecast'] = rm_forecast
+
         except:
             ""
         st.subheader('7. แสดงการคาดการณ์ด้วยโมเดล')
@@ -300,6 +355,14 @@ else:
             fig2.add_trace(go.Line(x=source2[X_axis], y = source2[label_column + '_polyReg_forecast'], name=f'{label_column} _polyReg_forecast' ))
         except:
             ""
+        try:
+            fig2.add_trace(go.Line(x=source2[X_axis], y=source2[label_column + '_decision_forecast'], name=f'{label_column} _decision_forecast'))
+        except:
+            ""
+        try:
+            fig2.add_trace(go.Line(x=source2[X_axis], y=source2[label_column + '_ranforest_forecast'], name=f'{label_column} _ranforest_forecast'))
+        except:
+            "error"
         st.plotly_chart(fig2)
         st.write('')
         st.write('**ตารางแสดงผลการคาดการณ์**')
